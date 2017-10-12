@@ -22,6 +22,7 @@ rounds = 0
 multiplier = 1
 flag = 1
 ai_behavior = 0 #0 = matches, 1 = un-matches, 2 = erratic (always flips twice)
+ai_trust = 0 #lower = more trusting (if this is 7 or above, the AI will almost always cheat, regardless of behavior | if it's at exactly 0, the AI will cooperate more)
 game_state = True
 
 while game_state == True:
@@ -52,6 +53,8 @@ while game_state == True:
             cooperate_value += cheat_value
         if cheat_tie_value < 0 and random.randint(0, 1):
             cheat_tie_value -= cooperate_value
+        if random.randint(0, 3) == 0:
+            cheat_victim_value = abs(cheat_victim_value + cheat_value)
         
         last_choice = -1
         rules_change_str = 'We\'ve played ' + str('{:,}'.format(rounds)) + ' rounds so far. Let\'s change the rules: successful cooperation will now be worth ' + str('{:,}'.format(cooperate_value)) + ' yomi.'
@@ -86,10 +89,20 @@ while game_state == True:
         elif ai_behavior == 2:
             flip = random.randint(0, 1)
 
+        if ai_trust >= random.randint(1, 7) and flip == 0: #cheat cheating players more often, despite behavioral tendencies
+            flip = random.random_int(0, 1)
+            if ai_trust >= 7 and flip == 0: #cheat REALLY cheating players VERY often
+                flip = random.random_int(0, 1)
+        if ai_trust == 0 and random.randint(0, 1) == 0 and flip == 1: #cooperate with cooperative players more often, despite behavioral tendencies
+            flip = random.randint(0, 1)
+            if flip == 0 and ai_trust == 0 and random.randint(0, 10) == 0: #1-in-11 chance to catch "suckers" (overly cooperative players)
+                ai_trust = 7
+
         if choice in choices_list:
             rounds += 1
             if choice == 'cooperate':
                 last_choice = 0
+                ai_trust -= 2
                 if flip == 0:
                     yomi += cooperate_value*flag
                     ai_yomi += cooperate_value*flag
@@ -103,6 +116,7 @@ while game_state == True:
                         print 'You cooperated, but I cheated! I earned ' + str('{:,}'.format(cheat_value*flag)) + ' yomi and you earned ' + str('{:,}'.format(cheat_victim_value*flag)) + ' yomi.'
             else:
                 last_choice = 1
+                ai_trust += 1
                 if flip == 0:
                     yomi += cheat_value*flag
                     ai_yomi += cheat_victim_value*flag
@@ -124,6 +138,10 @@ while game_state == True:
                 yomi = 0
             if ai_yomi < 0:
                 ai_yomi = 0
+            if ai_trust < 0:
+                ai_trust = 0
+            if ai_trust > 7:
+                ai_trust = 7
             print 'Round #' + str('{:,}'.format(rounds)) + ': You have ' + str('{:,}'.format(yomi)) + ' yomi. I have ' + str('{:,}'.format(ai_yomi)) + ' yomi.'
         else:
             print choice.capitalize() + ' is not a valid choice.'
